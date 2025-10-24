@@ -1,0 +1,88 @@
+- name: Install Docker & prerequisites on all nodes
+  hosts: all
+  become: true
+  tasks:
+    - name: update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg-agent
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: Install docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
+        update_cache: yes
+
+    - name: Ensure docker service running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+- name: Initialize swarm on manager and get join token
+  hosts: manager
+  become: true
+  tasks:
+    - name: Initialize Docker Swarm
+      shell: |
+        docker swarm init --advertise-addr {{ ansible_host }} || true
+      register: swarm_init
+      changed_when: "'Error' not in swarm_init.stderr"
+
+    - name: Get worker join token
+      shell: docker swarm join-token worker -q
+      register: worker_token
+
+    - name: Set fact for token
+      set_fact:
+        swarm_worker_token: "{{ worker_token.stdout }}"
+
+    - name: Show manager advertise address
+      debug:
+        msg: "{{ ansible_host }}"
+
+- name: Join workers to swarm
+  hosts: workers
+  become: true
+  tasks:
+    - name: Resolve manager address for swarm join (robust)
+      set_fact:
+        manager_addr: >-
+          {{ hostvars[groups['manager'][0]]['ansible_host'] 
+             | default(hostvars[groups['manager'][0]]['inventory_hostname']) 
+             | default(hostvars[groups['manager'][0]]['ansible_default_ipv4']['address'] 
+                        if hostvars[groups['manager'][0]] is defined and hostvars[groups['manager'][0]]['ansible_default_ipv4'] is defined else hostvars[groups['manager'][0]]['inventory_hostname']) }}
+    - name: Debug manager address (optional)
+      debug:
+        msg: "Using manager address {{ manager_addr }} to join swarm"
+
+    - name: Join swarm as worker
+      shell: docker swarm join --token {{ hostvars[groups['manager'][0]]['swarm_worker_token'] }} {{ manager_addr }}:2377
+      register: join_result
+      failed_when: "'Error' in join_result.stderr"
+      changed_when: "'This node joined a swarm' in join_result.stdout or 'already part of a swarm' in join_result.stdout"
+

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Login</title></head>
+<body>
+  <h2>Login</h2>
+  {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+  <form method="post">{% csrf_token %}
+    <input name="username" placeholder="Roll No (e.g. ITA700)" required><br>
+    <input type="password" name="password" placeholder="Admission No (e.g. 2022PE0000)" required><br>
+    <button type="submit">Login</button>
+  </form>
+  <a href="/register/">Register</a>
+</body>
+</html>
