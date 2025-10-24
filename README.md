@@ -1,11 +1,22 @@
-### Devops Assignment IT739
-### Output Screenshots 
+# DevOps Assignment - IT739
 
-#### Login Page
+**Author:** Sarvesh Santosh Mokal  
+**Course:** IT739 - DevOps Assignment  
+
+---
+
+## 📂 Output Screenshots
+
+### 1. Login Page
 ![Login Page](images/login.png)
 
-#### Register Page
+### 2. Register Page
 ![Register Page](images/register.png)
 
-#### Home Page
+### 3. Home Page / Dashboard
 ![Home Page](images/dashboard.png)
+
+---
+
+
+> **Created with ❤️ by Sarvesh Santosh Mokal**
